@@ -1,25 +1,31 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartFrame;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.general.DefaultPieDataset;
+
+import java.util.*;
 
 class Transaction {
     private String description;
     private double amount;
     private boolean isExpense;
+    private String category;
 
-    public Transaction(String description, double amount, boolean isExpense) {
+    public Transaction(String description, double amount, boolean isExpense, String category) {
         this.description = description;
         this.amount = amount;
         this.isExpense = isExpense;
+        this.category = category;
     }
 
     public String getDescription() { return description; }
     public double getAmount() { return amount; }
     public boolean isExpense() { return isExpense; }
+    public String getCategory() { return category; }
 
     @Override
     public String toString() {
-        return (isExpense ? "Expense: " : "Income: ") + description + " - $" + amount;
+        return (isExpense ? "Expense: " : "Income: ") + description + " - $" + amount + " (" + category + ")";
     }
 }
 
@@ -58,6 +64,34 @@ public class FinanceTracker {
         return balance;
     }
 
+    public void showExpensePieChart() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        Map<String, Double> categoryTotals = new HashMap<>();
+
+        for (Transaction t : transactions) {
+            if (t.isExpense()) {
+                categoryTotals.put(t.getCategory(),
+                        categoryTotals.getOrDefault(t.getCategory(), 0.0) + t.getAmount());
+            }
+        }
+
+        for (Map.Entry<String, Double> entry : categoryTotals.entrySet()) {
+            dataset.setValue(entry.getKey(), entry.getValue());
+        }
+
+        JFreeChart chart = ChartFactory.createPieChart(
+                "Expense Distribution by Category",
+                dataset,
+                true,
+                true,
+                false
+        );
+
+        ChartFrame frame = new ChartFrame("Expense Pie Chart", chart);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
     public static void main(String[] args) {
         FinanceTracker tracker = new FinanceTracker();
         Scanner scanner = new Scanner(System.in);
@@ -67,7 +101,8 @@ public class FinanceTracker {
             System.out.println("2. Remove transaction");
             System.out.println("3. List transactions");
             System.out.println("4. Show balance");
-            System.out.println("5. Exit");
+            System.out.println("5. Show expense pie chart");
+            System.out.println("6. Exit");
             System.out.print("Choose an option: ");
 
             int choice = scanner.nextInt();
@@ -79,9 +114,13 @@ public class FinanceTracker {
                     String description = scanner.nextLine();
                     System.out.print("Amount: ");
                     double amount = scanner.nextDouble();
+                    scanner.nextLine(); // Consume newline
                     System.out.print("Is this an expense? (true/false): ");
                     boolean isExpense = scanner.nextBoolean();
-                    tracker.addTransaction(new Transaction(description, amount, isExpense));
+                    scanner.nextLine(); // Consume newline
+                    System.out.print("Category: ");
+                    String category = scanner.nextLine();
+                    tracker.addTransaction(new Transaction(description, amount, isExpense, category));
                     break;
                 case 2:
                     System.out.print("Enter index of transaction to remove: ");
@@ -95,6 +134,9 @@ public class FinanceTracker {
                     System.out.println("Current balance: $" + tracker.calculateBalance());
                     break;
                 case 5:
+                    tracker.showExpensePieChart();
+                    break;
+                case 6:
                     System.out.println("Exiting...");
                     System.exit(0);
                 default:
